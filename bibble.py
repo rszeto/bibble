@@ -4,6 +4,8 @@ import jinja2
 import jinja2.sandbox
 import re
 from calendar import month_name
+import os
+import argparse
 
 _months = {
     'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
@@ -113,7 +115,15 @@ def _sortkey(entry):
         year += '00'
     return year
 
-def main(bibfile, template):
+def main(bibfile, template, save_path, save_individual=False):
+    # Make sure save_path is a directory if save_individual, and a valid file path otherwise
+    if save_individual and not os.path.isdir(save_path):
+        print('save_individual is true, but save_path is not a directory. Quitting')
+        return
+    elif not save_individual and not os.path.isdir(os.path.abspath(os.path.dirname(save_path))):
+        print('save_individual is false, but save_path is not a valid file location. Quitting')
+        return
+    
     # Load the template.
     tenv = jinja2.sandbox.SandboxedEnvironment()
     tenv.filters['author_fmt'] = _author_fmt
@@ -137,8 +147,23 @@ def main(bibfile, template):
 
     # Render the template.
     bib_sorted = sorted(db.entries.values(), key=_sortkey, reverse=True)
-    out = tmpl.render(entries=bib_sorted)
-    print out
+    if save_individual:
+        for bib in bib_sorted:
+            out = tmpl.render(entry=bib)
+            file_path = os.path.join(save_path, '%s.html' % bib.key)
+            with open(file_path, 'w') as f:
+                f.write(out)
+    else:
+        out = tmpl.render(entries=bib_sorted)
+        with open(save_path, 'w') as f:
+            f.write(out)
 
 if __name__ == '__main__':
-    main(*sys.argv[1:])
+    parser = argparse.ArgumentParser()
+    parser.add_argument('bibfile', type=str, help='The .bib file with references')
+    parser.add_argument('template', type=str, help='The HTML template')
+    parser.add_argument('save_path', type=str, help='The output file if save_individual is not specified; the directory to store output files otherwise')
+    parser.add_argument('--save_individual', action='store_true', help='Whether to save all references in one HTML file or generate multiple files')
+    
+    args = parser.parse_args()
+    main(args.bibfile, args.template, args.save_path, args.save_individual)
