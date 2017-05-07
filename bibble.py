@@ -1,5 +1,6 @@
 import sys
 from pybtex.database.input import bibtex
+from pybtex.database import BibliographyData
 import jinja2
 import jinja2.sandbox
 import re
@@ -141,9 +142,11 @@ def main(bibfile, template, save_path, save_individual=False):
     with open(bibfile) as f:
         db = bibtex.Parser().parse_stream(f)
 
-    # Include the bibliography key in each entry.
     for k, v in db.entries.items():
+        # Include the bibliography key in each entry.
         v.fields['key'] = k
+        # Include the full BibTeX in each entry
+        v.fields['bibtex'] = BibliographyData({k: v}).to_string('bibtex').strip()
 
     # Render the template.
     bib_sorted = sorted(db.entries.values(), key=_sortkey, reverse=True)
