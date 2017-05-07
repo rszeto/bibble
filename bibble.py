@@ -1,6 +1,6 @@
 import sys
 from pybtex.database.input import bibtex
-from pybtex.database import BibliographyData
+from pybtex.database import BibliographyData, FieldDict, Entry
 import jinja2
 import jinja2.sandbox
 import re
@@ -12,6 +12,9 @@ _months = {
     'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
     'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
 }
+
+# List of fields to not print in the publicly available BibTeX source
+_ignore_fields_bibtex_source = ['url', 'key']
 
 def _author_fmt(author):
     return u' '.join(author.first() + author.middle() + author.last())
@@ -145,8 +148,10 @@ def main(bibfile, template, save_path, save_individual=False):
     for k, v in db.entries.items():
         # Include the bibliography key in each entry.
         v.fields['key'] = k
-        # Include the full BibTeX in each entry
-        v.fields['bibtex'] = BibliographyData({k: v}).to_string('bibtex').strip()
+        # Include the full BibTeX in each entry, minus fields to ignore
+        filtered_v_field_items = filter(lambda x: x[0] not in _ignore_fields_bibtex_source, v.fields.items())
+        filtered_v = Entry(v.type, fields=filtered_v_field_items, persons=v.persons)
+        v.fields['bibtex'] = BibliographyData({k: filtered_v}).to_string('bibtex').strip()
 
     # Render the template.
     bib_sorted = sorted(db.entries.values(), key=_sortkey, reverse=True)
