@@ -13,11 +13,21 @@ _months = {
     'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
 }
 
+_bolded_author = {
+    'first': 'Ryan',
+    'last': 'Szeto'
+}
+
 # List of fields to not print in the publicly available BibTeX source
 _ignore_fields_bibtex_source = ['url', 'key']
 
 def _author_fmt(author):
-    return u' '.join(author.first() + author.middle() + author.last())
+    author_name = u' '.join(author.first() + author.middle() + author.last())
+    if author.first()[0] == _bolded_author['first'] and author.last()[0] == _bolded_author['last']:
+        return '<strong>' + author_name + '</strong>'
+    else:
+        return author_name
+        
 
 def _andlist(ss, sep=', ', seplast=', and ', septwo=' and '):
     if len(ss) <= 1:
